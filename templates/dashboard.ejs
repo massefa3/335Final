@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Expense Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+        }
+        .container {
+            max-width: 850px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 123, 129, 0.2); /
+        }
+        h1 {
+            text-align: center;
+            color: #007B81;
+        }
+        .purchases-list {
+            margin-top: 1rem;
+            border-top: 1px solid #ccc;
+        }
+
+        .purchase-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ccc;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        input, button {
+            width: 92%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            align-items: center;
+        }
+        select{
+            width: 95%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            align-items: center;
+        }
+        canvas {
+            margin-top: 1.5rem;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, <%= user.username %>!</h1>
+
+        <h2>Your Purchases</h2>
+        <h3>Filter by Month</h3>
+        <form id="month-filter-form">
+            <select id="month-filter" onchange="filterPurchasesByMonth()">
+                <option value="">Year to Date</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+        </form>
+        <div class="purchases-list" id="purchases-list">
+            <% if (purchases.length === 0) { %>
+                <p>No purchases found. Add some expenses!</p>
+            <% } else { %>
+                <% purchases.forEach(purchase => { %>
+                    <div class="purchase-item">
+                        <span><strong><%= purchase.name %></strong> (<%= purchase.category %>) - <%= new Date(purchase.date).toLocaleDateString("en-US") %></span>
+                        <span>$<%= purchase.amount.toFixed(2) %></span>
+                    </div>
+                <% }); %>
+            <% } %>
+        </div>
+
+        <form id="add-expense-form">
+            <h2>Add Expense</h2>
+            <div class="form-group">
+                <label for="expense-name">Expense Name:</label>
+                <input type="text" id="expense-name" placeholder="Enter expense name" required>
+            </div>
+            <div class="form-group">
+                <label for="expense-amount">Amount:</label>
+                <input type="number" id="expense-amount" placeholder="Enter amount" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="expense-category">Category:</label>
+                <select id="expense-category" required>
+                    <option value="food">Food</option>
+                    <option value="transportation">Transportation</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="bills">Bills</option>
+                    <option value="shopping">Shopping</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="expense-currency">Currency:</label>
+                <select id="expense-currency" required>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                    <option value="AUD">AUD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                    <option value="CNY">CNY</option>
+                    <option value="SEK">SEK</option>
+                    <option value="NZD">NZD</option>
+                    <!-- Add more currencies if needed -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="expense-date">Date of Purchase:</label>
+                <input type="date" id="expense-date" required>
+            </div>
+            <button type="submit">Add Expense</button>
+        </form>
+        <div id="add-expense-status"></div>
+    </div>
+
+    <script>
+
+document.getElementById('add-expense-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const name = document.getElementById('expense-name').value;
+    const amount = parseFloat(document.getElementById('expense-amount').value);
+    const category = document.getElementById('expense-category').value;
+    const currency = document.getElementById('expense-currency').value;
+    const date = document.getElementById('expense-date').value;
+    const user = '<%= user.username %>'; // Ensure username is passed correctly
+
+    try {
+        const response = await fetch('/add-expense', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user, name, amount, category, currency, date })
+        });
+
+        if (response.ok) {
+            window.location.href = `/dashboard?username=${encodeURIComponent(user)}`;
+        } else {
+            const errorText = await response.text();
+            document.getElementById('add-expense-status').textContent = `Error: ${errorText}`;
+        }
+    } catch (error) {
+        console.error("Error adding expense:", error);
+        document.getElementById('add-expense-status').textContent = "An error occurred. Please try again.";
+    }
+});
+
+
+function filterPurchasesByMonth() {
+    const month = document.getElementById('month-filter').value;
+    const username = '<%= user.username %>';
+
+    window.location.href = `/dashboard?username=${encodeURIComponent(username)}&month=${month}`;
+}
+
+
+
+
+    </script>
+</body>
+</html>

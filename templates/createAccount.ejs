@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Expense Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e0f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #009688;
+            margin-bottom: 1.5rem;
+        }
+        input{
+            width:88%;
+        }
+        input, button {
+            padding: 0.8rem;
+            border: 1px solid #b2dfdb;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        button {
+            width:95%;
+            background-color: #26a69a;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00897b;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Create Account</h1>
+        <form id="create-account-form">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit">Create New Account</button>
+        </form>
+        <div class="error-message" id="error-message"></div>
+        <div class="success-message" id="success-message"></div>
+    </div>
+    <script>
+        document.getElementById('create-account-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/createAccount', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                document.getElementById('success-message').innerHTML = `
+                    Account created successfully! <br>
+                    <button onclick="window.location.href='/'">Go to Login</button>
+                `;
+                }else {
+                    const errorText = await response.text();
+                    document.getElementById('error-message').textContent = errorText;
+                    document.getElementById('success-message').textContent = "";
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = "An error occurred. Please try again.";
+                document.getElementById('success-message').textContent = "";
+            }
+        });
+    </script>
+</body>
+</html>
