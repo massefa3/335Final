@@ -48,18 +48,16 @@ process.stdin.on("data", (input) => {
     }
 });
 
-// login page using login.ejs
+// Render the login page
 app.get("/", (request, response) => {
     response.render("login");
 });
 
-// Add new purchase
 
 
 
-
-
-app.post("/createAccount", async (req, res) => {
+// Create account endpoint
+app.post("/create-account", async (req, res) => {
     const { username, password } = req.body;
 
     try {
@@ -85,6 +83,8 @@ app.post("/createAccount", async (req, res) => {
     }
 });
 
+// Login endpoint 
+
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
@@ -93,18 +93,22 @@ app.post("/login", async (req, res) => {
         const db = client.db(process.env.MONGO_DB_NAME);
         const usersCollection = db.collection("users");
 
+        // Check if the user exists
         const user = await usersCollection.findOne({ username });
+
+        // Prompts the user to create a new account if user isn't found in db
         if (!user) {
             return res.status(400).send(`
                 <h1>Error</h1>
                 <p>User not found. Please create a new account.</p>
-                <a href="/createAccount">Create Account</a>
+                <a href="/create-account">Create Account</a>
             `);
         }
+        // Check if the password is correct
         if (user.password !== password) {
             return res.status(401).send("Incorrect password. Please try again.");
         }
-
+        // Redirect to the dashboard if the user is verified
         res.redirect(`/dashboard?username=${encodeURIComponent(username)}`);
     } catch (e) {
         console.error(e);
@@ -115,27 +119,34 @@ app.post("/login", async (req, res) => {
 });
 
 
+// Endpoint to fetch dashboard data
 
 app.get("/dashboard", async (req, res) => {
     const { username, month } = req.query;
+
+    if (!username) {
+        return res.status(400).send("Missing username");
+    }
 
     try {
         await client.connect();
         const db = client.db(process.env.MONGO_DB_NAME);
         const purchasesCollection = db.collection("purchases");
-
         let query = { user: username };
-        if (month && month !== "") {
-            const year = new Date().getFullYear(); // Current year
-            const startDate = new Date(year, parseInt(month) - 1, 1);
-            const endDate = new Date(year, parseInt(month), 0); // Last day of the month
+
+        // Add month filtering to the query if month is not empty
+        if (month) {
+            const year = new Date().getFullYear(); // Get the current year
+            const startDate = `${year}-${month}-01`;
+            const endDate = `${year}-${month}-31`; // Adjusting for different month lengths requires more logic
             query.date = { $gte: startDate, $lte: endDate };
         }
 
-        const purchases = await purchasesCollection.find(query).sort({ date: 1 }).toArray(); // Sorting by date in ascending order
+        // Retrieve and sort the purchases in ascending order by date
+        const purchases = await purchasesCollection.find(query).sort({ date: 1 }).toArray();
+        console.log("Filtered and sorted purchases:", purchases);
 
-        console.log("Fetched purchases:", purchases);
-        res.render("dashboard", { user: { username }, purchases, month });
+        res.render("dashboard", { user: { username }, purchases });
     } catch (error) {
         console.error("Error fetching dashboard data:", error);
         res.status(500).send("Error fetching dashboard data.");
@@ -151,26 +162,24 @@ app.get("/dashboard", async (req, res) => {
 
 
 
+// Endpoint to add a new purchase
+
 app.post('/add-expense', async (req, res) => {
     const { user, name, category, currency, amount, date } = req.body;
 
-    // Log all incoming values for debugging
     console.log("Received data:", { user, name, category, currency, amount, date });
-    if (!date) {
-    console.error("Date is undefined.");
-    return;
-    }
-    // Validate all required fields are present
-    if (!user || !name || !amount || !category || !currency || !date    ) {
+
+    // Check if all required fields are present
+    if (!user || !name || !amount || !category || !currency || !date) {
         console.log("Error: Missing required fields");
         return res.status(400).send("Missing required fields.");
     }
 
     try {
-        const baseCurrency = 'USD'; // Default base currency
-        let exchangeRate = 1; // Default to 1 if no conversion is needed
+        const baseCurrency = 'USD'; // Default currency
+        let exchangeRate = 1; // Default if there isn't a different currency
 
-        // Fetch exchange rate if different from base currency
+        // Fetch exchange rate if different USD
         if (currency !== baseCurrency) {
             console.log("Date sent to API:", date);
             exchangeRate = await fetchExchangeRate(currency, date);
@@ -184,7 +193,7 @@ app.post('/add-expense', async (req, res) => {
         const usdAmount = amount * exchangeRate; // Convert amount to USD
         console.log("Exchange Rate:", exchangeRate, "USD Amount:", usdAmount);
 
-        // Connect to MongoDB and insert the purchase
+        // Connect to MongoDB and insert purchase
         await client.connect();
         const db = client.db(process.env.MONGO_DB_NAME);
         const purchasesCollection = db.collection("purchases");
@@ -212,21 +221,23 @@ app.post('/add-expense', async (req, res) => {
 });
 
 
-
+// Endpoint to fetch exchange rate from API
 async function fetchExchangeRate(currency, date) {
     const appId = '78c170d013da4111e6103852ebe405cd';
     const dateObj = new Date(date);
     const year = dateObj.getFullYear();
-    let month = dateObj.getMonth() + 1; // JavaScript months are 0-indexed
+    let month = dateObj.getMonth() + 1;
     let day = dateObj.getDate();
+
+    // Pad with 0 if month or day is less than 10
     if(month<10){
         month = '0'+month;
     }
     if(day<10){
         day = '0'+day;
     }
+
     let url = `https://api.exchangeratesapi.io/v1/${year}-${month}-${day}?access_key=78c170d013da4111e6103852ebe405cd&symbols=${currency}`;
-    console.log("URL used for API Call:", url);
 
     try {
         const response = await fetch(url);
@@ -235,6 +246,7 @@ async function fetchExchangeRate(currency, date) {
             console.error('API error:', data.error);
             return null;
         }
+        // Return the exchange rate for the specified currency (displayed in a rates property)
         return data.rates[currency];
     } catch (error) {
         console.error('Failed to fetch exchange rates:', error);
@@ -243,17 +255,9 @@ async function fetchExchangeRate(currency, date) {
 }
 
 
-app.get('/test-fetch', async (req, res) => {
-    const rate = await fetchExchangeRate('PLN', "2024-10-14");  // Use a hardcoded date for testing
-    res.send({ rate });
-});
-
-
-
-
-
-app.get('/createAccount', (req, res) => {
-    res.render('createAccount'); // Assumes createAccount.ejs is in the templates folder
+// Create account page using createAccount.ejs
+app.get('/create-account', (req, res) => {
+    res.render('createAccount');
 });
 
 app.listen(portNumber, () => {});
