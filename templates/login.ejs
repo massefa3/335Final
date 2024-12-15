@@ -62,11 +62,7 @@
         button:hover {
             background-color: #005a60;
         }
-        .error-message {
-            color: red;
-            text-align: center;
-            margin-top: 1rem;
-        }
+
     </style>
 </head>
 <body>
@@ -89,9 +85,10 @@
         <button id="create-account-btn">Create New Account</button>
     </div>
     <script>
+        // Redirect to create account page when the button is clicked
         document.getElementById('create-account-btn').addEventListener('click', (event) => {
             event.preventDefault();
-            window.location.href = '/createAccount';
+            window.location.href = '/create-account';
         });
     </script>
 </body>
