@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Expense Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,7 +17,7 @@
             padding: 1rem;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 123, 129, 0.2); /
+            box-shadow: 0 4px 8px rgba(0, 123, 129, 0.2);
         }
         h1 {
             text-align: center;
@@ -28,7 +27,6 @@
             margin-top: 1rem;
             border-top: 1px solid #ccc;
         }
-
         .purchase-item {
             display: flex;
             justify-content: space-between;
@@ -62,7 +60,6 @@
         canvas {
             margin-top: 1.5rem;
         }
-
     </style>
 </head>
 <body>
@@ -135,7 +132,6 @@
                     <option value="CNY">CNY</option>
                     <option value="SEK">SEK</option>
                     <option value="NZD">NZD</option>
-                    <!-- Add more currencies if needed -->
                 </select>
             </div>
             <div class="form-group">
@@ -148,46 +144,44 @@
     </div>
 
     <script>
+        document.getElementById('add-expense-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            // Get the expense details from the form
+            const name = document.getElementById('expense-name').value;
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+            const category = document.getElementById('expense-category').value;
+            const currency = document.getElementById('expense-currency').value;
+            const date = document.getElementById('expense-date').value;
+            const user = '<%= user.username %>';
 
-document.getElementById('add-expense-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const name = document.getElementById('expense-name').value;
-    const amount = parseFloat(document.getElementById('expense-amount').value);
-    const category = document.getElementById('expense-category').value;
-    const currency = document.getElementById('expense-currency').value;
-    const date = document.getElementById('expense-date').value;
-    const user = '<%= user.username %>'; // Ensure username is passed correctly
-
-    try {
-        const response = await fetch('/add-expense', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user, name, amount, category, currency, date })
+            try {
+                // Send a POST request to the server to add the expense
+                const response = await fetch('/add-expense', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, name, amount, category, currency, date })
+                });
+                // If the request is successful, redirect to the dashboard
+                if (response.ok) {
+                    window.location.href = `/dashboard?username=${encodeURIComponent(user)}`;
+                } else {
+                    // If there is an error, display the error message
+                    const errorText = await response.text();
+                    document.getElementById('add-expense-status').textContent = `Error: ${errorText}`;
+                }
+            } catch (error) {
+                console.error("Error adding expense:", error);
+                document.getElementById('add-expense-status').textContent = "An error occurred. Please try again.";
+            }
         });
 
-        if (response.ok) {
-            window.location.href = `/dashboard?username=${encodeURIComponent(user)}`;
-        } else {
-            const errorText = await response.text();
-            document.getElementById('add-expense-status').textContent = `Error: ${errorText}`;
+        // Function to filter purchases by month
+        function filterPurchasesByMonth() {
+            const month = document.getElementById('month-filter').value;
+            const username = '<%= user.username %>';
+            console.log(`Filtering for username: ${username} and month: ${month}`);
+            window.location.href = `/dashboard?username=${encodeURIComponent(username)}&month=${month}`;
         }
-    } catch (error) {
-        console.error("Error adding expense:", error);
-        document.getElementById('add-expense-status').textContent = "An error occurred. Please try again.";
-    }
-});
-
-
-function filterPurchasesByMonth() {
-    const month = document.getElementById('month-filter').value;
-    const username = '<%= user.username %>';
-
-    window.location.href = `/dashboard?username=${encodeURIComponent(username)}&month=${month}`;
-}
-
-
-
 
     </script>
 </body>
