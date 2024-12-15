@@ -68,6 +68,7 @@
         <div class="success-message" id="success-message"></div>
     </div>
     <script>
+        // Add event listener to the form to create a new account
         document.getElementById('create-account-form').addEventListener('submit', async (event) => {
             event.preventDefault();
 
@@ -75,7 +76,7 @@
             const password = document.getElementById('password').value;
 
             try {
-                const response = await fetch('/createAccount', {
+                const response = await fetch('/create-account', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
